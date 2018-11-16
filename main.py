@@ -8,6 +8,145 @@ import sys	# argv
 import ot	# alice, bob
 import util	# ClientSocket, log, ServerSocket
 import yao	# Circuit
+import random
+from cryptography.fernet import Fernet
+
+#import pdb; pdb.set_trace()
+
+class Table:
+    def __init__(self):
+        self.lookup_map = dict()
+
+    def get_key(self, inputs):
+        if (len(inputs) == 1):
+            return inputs[0]
+        else:
+            return (inputs[0],inputs[1])
+
+    def add_entry(self, inputs, value):
+        self.lookup_map[self.get_key(inputs)] = value
+        return
+
+    def get_entry(self, inputs):
+        return self.lookup_map[self.get_key(inputs)]
+
+class Gate:
+    def __init__(self):
+        self.type = "null"
+        self.id = "null"
+        self.input = []
+        self.garbled_table = Table()
+
+    def evaluate(self, inputs):
+        if  (self.type == "AND"):
+            return all(inputs)
+        if (self.type == "NAND"):
+            return not(all(inputs))
+        if (self.type == "OR"):
+            return any(inputs)
+        if (self.type == "NOR"):
+            return not(any(inputs))
+        if (self.type == "XOR"):
+            return inputs[0] ^ inputs[1]
+        if (self.type == "XNOR"):
+            return not(inputs[0] ^ inputs[1])
+        if (self.type == "NOT"):
+            return not inputs[0]
+        raise Exception('Unsupported Gate Type')
+
+class Circuit:
+    def __init__(self):
+        self.Name = "null"
+        self.Gates = []
+        self.Wires = []
+        self.Alice = []
+        self.Bob = []
+        self.Outputs = []
+
+    def parseJson(self, json_circuit):
+        self.Name = json_circuit["name"]
+        self.Outputs = json_circuit["out"]
+
+        if ("alice" in json_circuit):
+            self.Alice = json_circuit["alice"]
+            self.Wires.extend(self.Alice)
+        if ("bob" in json_circuit):
+            self.Bob = json_circuit["bob"]
+            self.Wires.extend(self.Bob)
+
+        for json_gate in json_circuit["gates"]:
+            gate = Gate()
+            gate.id = json_gate["id"]
+            gate.type = json_gate["type"]
+            gate.input = json_gate["in"]
+            self.Gates.append(gate)
+            self.Wires.append(json_gate["id"])
+
+def create_garble_tables(circuit, p_values):
+    for gate in circuit.Gates:
+        if (gate.type == "NOT"):
+            for input in create_all_possible_combination(1):
+                value = gate.evaluate(input)
+                p_val = input[0] ^ p_values[gate.input[0]]
+                gate.garbled_table.add_entry([p_val], value ^ p_values[gate.id])
+        else:
+            for input in create_all_possible_combination(2):
+                value = gate.evaluate(input)
+                ps = list(map(lambda x: input[x] ^ p_values[gate.input[x]],
+                              [0,1]))
+                gate.garbled_table.add_entry(ps, value ^ p_values[gate.id])
+
+def create_all_possible_combination(len):
+    l = [0,1]
+    if (len == 0):
+        return []
+    if (len == 1):
+        return [[i] for i in l]
+    if (len == 2):
+        return [(i, j) for i in l for j in l]
+    if (len == 3):
+        return [(i, j, k) for i in l for j in l for k in l]
+
+def lookup_gate(id, Gates):
+    for gate in Gates:
+        if (gate.id == id):
+            return gate
+    return "null"
+
+def evaluate_circuit(know_values, output_key, Gates):
+    #any wire value is either know value or a gate id
+    if output_key in know_values:
+        return know_values[output_key]
+    else:
+        gate = lookup_gate(output_key, Gates)
+        inputs = [ evaluate_circuit(know_values, x, Gates) for x in gate.input]
+        return gate.garbled_table.get_entry(inputs)
+
+def evaluate(Alice_values, Bob_values, circuit, output_pvalues):
+    know_values = {}
+
+    #Map know values
+    know_values.update(dict(zip(circuit.Alice, Alice_values)))
+    know_values.update(dict(zip(circuit.Bob, Bob_values)))
+
+    results = [evaluate_circuit(know_values, output, circuit.Gates)
+              for output in circuit.Outputs]
+    return list(map(lambda x, y: x ^ y, results, output_pvalues))
+
+def write_output(circuit, f, Alice_values, Bob_values, outputs):
+    f.write("  Alice" + str(circuit.Alice) + " = ")
+    for val in Alice_values:
+        f.write(str(val) + " ")
+    f.write(" Bob" + str(circuit.Bob) + " = ")
+    for val in Bob_values:
+        f.write(str(val) + " ")
+    f.write("  Outputs" + str(circuit.Outputs) + " = ")
+    for val in outputs:
+        f.write(str(val) + " ")
+    f.write("\n")
+    return
+
+
 
 # Alice is the circuit generator (client) __________________________________
 
@@ -18,7 +157,36 @@ def alice(filename):
     json_circuits = json.load(json_file)
 
   for json_circuit in json_circuits['circuits']:
-    # << removed >>
+      circuit = Circuit()
+      circuit.parseJson(json_circuit)
+
+      #Create random p values
+      p_values = {}
+      for wire in circuit.Wires:
+          p_values[wire] = random.randint(0,1)
+
+      #Generate keys for each wire
+      keys = {}
+      for wire in circuit.Wires:
+          keys[wire] = (Fernet.generate_key(), Fernet.generate_key())
+
+      #Create table
+      create_garble_tables(circuit, p_values)
+
+      #Send all combinations to Bob
+      for Alice_values in create_all_possible_combination(len(circuit.Alice)):
+          Alice_pvalues = list(map(lambda x, y: x ^ p_values[y],
+                                    Alice_values, circuit.Alice))
+          output_pvalues = list(map(lambda x: p_values[x], circuit.Outputs))
+
+          #Check if bob values exist
+          if (not len(circuit.Bob)):
+              output = socket.send_wait((circuit, Alice_pvalues, [],  output_pvalues))
+          else:
+              for Bob_values in create_all_possible_combination(len(circuit.Bob)):
+                  Bob_pvalues = list(map(lambda x, y: x ^ p_values[y], Bob_values, circuit.Bob))
+                  output = socket.send_wait((circuit, Alice_pvalues, Bob_pvalues,  output_pvalues))
+
 
 # Bob is the circuit evaluator (server) ____________________________________
 
@@ -26,7 +194,14 @@ def bob():
   socket = util.ServerSocket()
   util.log(f'Bob: Listening ...')
   while True:
-    # << removed >>
+      value = socket.receive()
+      circuit = value[0]
+      Alice_pvalues = value[1]
+      Bob_pvalues = value[2]
+      output_pvalues = value[3]
+
+      output = evaluate(Alice_pvalues, Bob_pvalues, circuit, output_pvalues)
+      socket.send(output)
 
 # local test of circuit generation and evaluation, no transfers_____________
 
@@ -34,8 +209,38 @@ def local_test(filename):
   with open(filename) as json_file:
     json_circuits = json.load(json_file)
 
+  f = open("output.txt", "a")
+  f.write("python3 main.py alice " + filename + "\n")
+
   for json_circuit in json_circuits['circuits']:
-    # << removed >>
+      circuit = Circuit()
+      circuit.parseJson(json_circuit)
+      f.write("\n======= "+ circuit.Name + " =======\n")
+
+      #Create random p values
+      p_values = {}
+      for wire in circuit.Wires:
+          p_values[wire] = random.randint(0,1)
+
+      #Create table
+      create_garble_tables(circuit, p_values)
+
+      #Try evaluate
+      for Alice_values in create_all_possible_combination(len(circuit.Alice)):
+           Alice_pvalues = list(map(lambda x, y: x ^ p_values[y],
+                                     Alice_values, circuit.Alice))
+           output_pvalues = list(map(lambda x: p_values[x], circuit.Outputs))
+
+           if (not len(circuit.Bob)):
+               outputs = evaluate(Alice_pvalues, [], circuit, output_pvalues)
+               write_output(circuit, f, Alice_values, [], outputs)
+
+           for Bob_values in create_all_possible_combination(len(circuit.Bob)):
+               Bob_pvalues = list(map(lambda x, y: x ^ p_values[y], Bob_values, circuit.Bob))
+               outputs = evaluate(Alice_pvalues, Bob_pvalues, circuit, output_pvalues)
+
+               # Write output
+               write_output(circuit, f, Alice_values, Bob_values, outputs)
 
 # main _____________________________________________________________________
 
@@ -49,5 +254,3 @@ if __name__ == '__main__':
   main()
 
 # __________________________________________________________________________
-
-

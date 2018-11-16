@@ -7,15 +7,13 @@ OBLIVIOUS_TRANSFERS = True
 if OBLIVIOUS_TRANSFERS: # __________________________________________________
 
   # bellare-micali OT with naor and pinkas optimisations, see smart p423
-
+  pass
   # << removed >>
 
 else: # ____________________________________________________________________
 
   # non oblivious transfers, not even a secure channel is used, for testing
-
+  pass
   # << removed >>
 
 # __________________________________________________________________________
-
-
