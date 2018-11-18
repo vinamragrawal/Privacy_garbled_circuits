@@ -2,14 +2,17 @@
 # yao garbled circuit evaluation v1. simple version based on smart
 # naranker dulay, dept of computing, imperial college, october 2018
 
+# Vinamra Agrawal - va1215
+
 import json	# load
 import sys	# argv
 
 import ot	# alice, bob
 import util	# ClientSocket, log, ServerSocket
 import yao	# Circuit
-import random
-from cryptography.fernet import Fernet
+import random #Generate Random numbers for p values
+from cryptography.fernet import Fernet, MultiFernet # encryption
+import pickle #coding and decoding
 
 #import pdb; pdb.set_trace()
 
@@ -82,19 +85,27 @@ class Circuit:
             self.Gates.append(gate)
             self.Wires.append(json_gate["id"])
 
-def create_garble_tables(circuit, p_values):
+def create_garble_tables(circuit, p_values, keys):
     for gate in circuit.Gates:
         if (gate.type == "NOT"):
             for input in create_all_possible_combination(1):
-                value = gate.evaluate(input)
                 p_val = input[0] ^ p_values[gate.input[0]]
-                gate.garbled_table.add_entry([p_val], value ^ p_values[gate.id])
+                input_keys = keys[gate.input[0]][p_val]
+                f = MultiFernet([Fernet(input_keys), Fernet(input_keys)])
+                output_value = gate.evaluate(input) ^ p_values[gate.id]
+                output_value = (output_value, keys[gate.id][output_value])
+                output_value = f.encrypt(pickle.dumps(output_value))
+                gate.garbled_table.add_entry([p_val], output_value )
         else:
             for input in create_all_possible_combination(2):
-                value = gate.evaluate(input)
                 ps = list(map(lambda x: input[x] ^ p_values[gate.input[x]],
                               [0,1]))
-                gate.garbled_table.add_entry(ps, value ^ p_values[gate.id])
+                input_keys = list(map(lambda x, y: keys[x][y], gate.input, ps))
+                f = MultiFernet(list(map(lambda x: Fernet(x), input_keys)))
+                output_value = gate.evaluate(input) ^ p_values[gate.id]
+                output_value = (output_value, keys[gate.id][output_value])
+                output_value = f.encrypt(pickle.dumps(output_value))
+                gate.garbled_table.add_entry(ps, output_value)
 
 def create_all_possible_combination(len):
     l = [0,1]
@@ -119,8 +130,12 @@ def evaluate_circuit(know_values, output_key, Gates):
         return know_values[output_key]
     else:
         gate = lookup_gate(output_key, Gates)
-        inputs = [ evaluate_circuit(know_values, x, Gates) for x in gate.input]
-        return gate.garbled_table.get_entry(inputs)
+        inputs = [ evaluate_circuit(know_values, x, Gates)[0] for x in gate.input]
+        output = gate.garbled_table.get_entry(inputs)
+        f = MultiFernet([ Fernet(evaluate_circuit(know_values, x, Gates)[1])
+                                                          for x in gate.input])
+        output = pickle.loads(f.decrypt(output))
+        return output
 
 def evaluate(Alice_values, Bob_values, circuit, output_pvalues):
     know_values = {}
@@ -129,7 +144,7 @@ def evaluate(Alice_values, Bob_values, circuit, output_pvalues):
     know_values.update(dict(zip(circuit.Alice, Alice_values)))
     know_values.update(dict(zip(circuit.Bob, Bob_values)))
 
-    results = [evaluate_circuit(know_values, output, circuit.Gates)
+    results = [evaluate_circuit(know_values, output, circuit.Gates)[0]
               for output in circuit.Outputs]
     return list(map(lambda x, y: x ^ y, results, output_pvalues))
 
@@ -159,6 +174,7 @@ def alice(filename):
   for json_circuit in json_circuits['circuits']:
       circuit = Circuit()
       circuit.parseJson(json_circuit)
+      print(circuit.Name)
 
       #Create random p values
       p_values = {}
@@ -171,21 +187,26 @@ def alice(filename):
           keys[wire] = (Fernet.generate_key(), Fernet.generate_key())
 
       #Create table
-      create_garble_tables(circuit, p_values)
+      create_garble_tables(circuit, p_values, keys)
 
       #Send all combinations to Bob
       for Alice_values in create_all_possible_combination(len(circuit.Alice)):
           Alice_pvalues = list(map(lambda x, y: x ^ p_values[y],
                                     Alice_values, circuit.Alice))
+          Alice_pvalues = list(map(lambda x, y: (x, keys[y][x]),
+                                    Alice_pvalues, circuit.Alice))
           output_pvalues = list(map(lambda x: p_values[x], circuit.Outputs))
 
           #Check if bob values exist
           if (not len(circuit.Bob)):
               output = socket.send_wait((circuit, Alice_pvalues, [],  output_pvalues))
+              print(Alice_values, [], output)
           else:
               for Bob_values in create_all_possible_combination(len(circuit.Bob)):
                   Bob_pvalues = list(map(lambda x, y: x ^ p_values[y], Bob_values, circuit.Bob))
+                  Bob_pvalues = list(map(lambda x, y: (x, keys[y][x]), Bob_pvalues, circuit.Bob))
                   output = socket.send_wait((circuit, Alice_pvalues, Bob_pvalues,  output_pvalues))
+                  print(Alice_values, Bob_values, output)
 
 
 # Bob is the circuit evaluator (server) ____________________________________
@@ -222,13 +243,20 @@ def local_test(filename):
       for wire in circuit.Wires:
           p_values[wire] = random.randint(0,1)
 
+      #Generate keys for each wire
+      keys = {}
+      for wire in circuit.Wires:
+          keys[wire] = (Fernet.generate_key(), Fernet.generate_key())
+
       #Create table
-      create_garble_tables(circuit, p_values)
+      create_garble_tables(circuit, p_values, keys)
 
       #Try evaluate
       for Alice_values in create_all_possible_combination(len(circuit.Alice)):
            Alice_pvalues = list(map(lambda x, y: x ^ p_values[y],
                                      Alice_values, circuit.Alice))
+           Alice_pvalues = list(map(lambda x, y: (x, keys[y][x]),
+                                     Alice_pvalues, circuit.Alice))
            output_pvalues = list(map(lambda x: p_values[x], circuit.Outputs))
 
            if (not len(circuit.Bob)):
@@ -237,6 +265,7 @@ def local_test(filename):
 
            for Bob_values in create_all_possible_combination(len(circuit.Bob)):
                Bob_pvalues = list(map(lambda x, y: x ^ p_values[y], Bob_values, circuit.Bob))
+               Bob_pvalues = list(map(lambda x, y: (x, keys[y][x]), Bob_pvalues, circuit.Bob))
                outputs = evaluate(Alice_pvalues, Bob_pvalues, circuit, output_pvalues)
 
                # Write output
