@@ -2,6 +2,8 @@
 # yao garbled circuit evaluation v1. simple version based on smart
 # naranker dulay, dept of computing, imperial college, october 2018
 
+# Vinamra Agrawal - va1215
+
 ALICE   = python3 main.py alice	# circuit generator (client)
 BOB     = python3 main.py bob	# circuit evaluator (server)
 LOCAL   = python3 main.py local	# local, not client-server, no transfers
@@ -37,7 +39,7 @@ local:	main.py
 	${LOCAL} json/f.max.json
 	${LOCAL} json/f.min.json
 	${LOCAL} json/f.smart.json
-     
+
 bool:	main.py
 	${ONEFILE} json/f.bool.json
 
@@ -67,5 +69,3 @@ million:main.py
 
 test:	main.py
 	${ONEFILE} json/f.test.json
-
-
