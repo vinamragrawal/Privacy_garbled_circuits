@@ -89,6 +89,9 @@ def alice(filename):
       #Create table
       create_garble_tables(circuit, p_values, keys)
 
+      #Generate value and key for all possible bob values for circuit
+      all_bob_values = ot.generate_all_bob_values(circuit.Bob, p_values, keys)
+
       #Send all combinations to Bob
       for Alice_values in util.create_all_possible_combination(len(circuit.Alice)):
           Alice_pvalues = list(map(lambda x, y: x ^ p_values[y],
@@ -97,15 +100,15 @@ def alice(filename):
                                     Alice_pvalues, circuit.Alice))
           output_pvalues = list(map(lambda x: p_values[x], circuit.Outputs))
 
+          str = socket.send_wait((circuit, Alice_pvalues, output_pvalues, p_values, keys))
+
           #Check if bob values exist
           if (not len(circuit.Bob)):
-              output = socket.send_wait((circuit, Alice_pvalues, [],  output_pvalues))
+              output = socket.send_wait([])
               print(Alice_values, [], output)
           else:
               for Bob_values in util.create_all_possible_combination(len(circuit.Bob)):
-                  Bob_pvalues = list(map(lambda x, y: x ^ p_values[y], Bob_values, circuit.Bob))
-                  Bob_pvalues = list(map(lambda x, y: (x, keys[y][x]), Bob_pvalues, circuit.Bob))
-                  output = socket.send_wait((circuit, Alice_pvalues, Bob_pvalues,  output_pvalues))
+                  output = socket.send_wait([])
                   print(Alice_values, Bob_values, output)
 
 
@@ -118,11 +121,28 @@ def bob():
       value = socket.receive()
       circuit = value[0]
       Alice_pvalues = value[1]
-      Bob_pvalues = value[2]
-      output_pvalues = value[3]
+      output_pvalues = value[2]
+      p_values = value[3]
+      keys = value[4]
+      socket.send("Done")
 
-      output = evaluate(Alice_pvalues, Bob_pvalues, circuit, output_pvalues)
-      socket.send(output)
+      #Check if bob values exist
+      if (not len(circuit.Bob)):
+          socket.receive()
+          output = evaluate(Alice_pvalues, Bob_pvalues, circuit, output_pvalues)
+          socket.send(output)
+      else:
+          for Bob_values in util.create_all_possible_combination(len(circuit.Bob)):
+              socket.receive()
+              Bob_pvalues = list(map(lambda x, y: x ^ p_values[y], Bob_values, circuit.Bob))
+              Bob_pvalues = list(map(lambda x, y: (x, keys[y][x]), Bob_pvalues, circuit.Bob))
+              output = evaluate(Alice_pvalues, Bob_pvalues, circuit, output_pvalues)
+              socket.send(output)
+              # output = socket.send_wait((circuit, Alice_pvalues, Bob_pvalues,  output_pvalues))
+              # print(Alice_values, Bob_values, output)
+
+      # output = evaluate(Alice_pvalues, Bob_pvalues, circuit, output_pvalues)
+      # socket.send(output)
 
 # local test of circuit generation and evaluation, no transfers_____________
 
