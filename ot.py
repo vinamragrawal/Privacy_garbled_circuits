@@ -2,6 +2,7 @@
 # yao garbled circuit evaluation v1. simple version based on smart
 # naranker dulay, dept of computing, imperial college, october 2018
 import util
+import pickle
 
 #Generate (value, key) pair for all bob values in the circuit
 def generate_all_bob_values(bob_index, p_values, keys):
@@ -24,36 +25,40 @@ def send_bob_values(bob_index, all_bob_values, socket):
         c = util.prime_group.rand_int()
 
         #Phase3
-        h0 = socket.send_wait(c)
+        h0 = socket.send_wait([c,util.prime_group])
         h1 = util.prime_group.mul(c, util.prime_group.inv(h0))
 
         k = util.prime_group.rand_int()
         c1 = util.prime_group.gen_pow(k)
 
         e = [0,0]
-        hash0 = util.ot_hash(util.prime_group.pow(h0, k), 256)
-        e[0] = util.xor_bytes(util.bits(values[0], 256), bytes(hash0))
+        value = pickle.dumps(values[0])
+        hash0 = util.ot_hash(util.prime_group.pow(h0, k), len(value))
+        e[0] = util.xor_bytes(value, bytes(hash0))
 
-        hash1 = util.ot_hash(util.prime_group.pow(h1, k), 256)
-        e[1] = util.xor_bytes(util.bits(values[1], 256), bytes(hash1))
+        value = pickle.dumps(values[1])
+        hash1 = util.ot_hash(util.prime_group.pow(h1, k), len(value))
+        e[1] = util.xor_bytes(value, bytes(hash1))
 
         socket.send_wait([c1, e])
 
 
 #Perform OT to receive all required values
 def receive_all_required_values(bob_index, chosen_values, socket):
-    result = {}
-    for index in bob_index:
+    result = [0] * len(bob_index)
+    for index in range(len(bob_index)):
         chosen_value = chosen_values[index]
 
         #Begin OT
         #Phase2
-        c = socket.receive()
-        x = util.prime_group.rand_int()
+        encoded_value = socket.receive()
+        c = encoded_value[0]
+        prime_group = encoded_value[1]
+        x = prime_group.rand_int()
 
         h = [0,0]
-        h[chosen_value] = util.prime_group.gen_pow(x)
-        h[1-chosen_value] = util.prime_group.mul(c, util.prime_group.inv(h[value]))
+        h[chosen_value] = prime_group.gen_pow(x)
+        h[1-chosen_value] = prime_group.mul(c, prime_group.inv(h[chosen_value]))
 
         socket.send(h[0])
 
@@ -62,13 +67,9 @@ def receive_all_required_values(bob_index, chosen_values, socket):
         c1 = encoded_value[0]
         e = encoded_value[1]
 
-        hash = util.ot_hash(util.prime_group.pow(c1, x), 256)
-        bit_result = util.xor_bytes(e[chosen_value], bytes(hash))
-        bit_result = [x for x in bit_result]
-        output = 0
-        for bit in bitlist:
-            output = (output << 1) | bit
-        result[index] = output
+        hash = util.ot_hash(prime_group.pow(c1, x), len(e[chosen_value]))
+        result_pr = util.xor_bytes(e[chosen_value], bytes(hash))
+        result[index] = pickle.loads(result_pr)
         socket.send("Done")
     return result
 

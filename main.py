@@ -100,15 +100,16 @@ def alice(filename):
                                     Alice_pvalues, circuit.Alice))
           output_pvalues = list(map(lambda x: p_values[x], circuit.Outputs))
 
-          str = socket.send_wait((circuit, Alice_pvalues, output_pvalues, p_values, keys))
+          socket.send_wait((circuit, Alice_pvalues, output_pvalues))
 
           #Check if bob values exist
           if (not len(circuit.Bob)):
-              output = socket.send_wait([])
+              output = socket.send_wait("Get output")
               print(Alice_values, [], output)
           else:
               for Bob_values in util.create_all_possible_combination(len(circuit.Bob)):
-                  output = socket.send_wait([])
+                  ot.send_bob_values(circuit.Bob, all_bob_values, socket)
+                  output = socket.send_wait("Get output")
                   print(Alice_values, Bob_values, output)
 
 
@@ -122,8 +123,6 @@ def bob():
       circuit = value[0]
       Alice_pvalues = value[1]
       output_pvalues = value[2]
-      p_values = value[3]
-      keys = value[4]
       socket.send("Done")
 
       #Check if bob values exist
@@ -133,16 +132,10 @@ def bob():
           socket.send(output)
       else:
           for Bob_values in util.create_all_possible_combination(len(circuit.Bob)):
+              Bob_pvalues = ot.receive_all_required_values(circuit.Bob, Bob_values, socket)
               socket.receive()
-              Bob_pvalues = list(map(lambda x, y: x ^ p_values[y], Bob_values, circuit.Bob))
-              Bob_pvalues = list(map(lambda x, y: (x, keys[y][x]), Bob_pvalues, circuit.Bob))
               output = evaluate(Alice_pvalues, Bob_pvalues, circuit, output_pvalues)
               socket.send(output)
-              # output = socket.send_wait((circuit, Alice_pvalues, Bob_pvalues,  output_pvalues))
-              # print(Alice_values, Bob_values, output)
-
-      # output = evaluate(Alice_pvalues, Bob_pvalues, circuit, output_pvalues)
-      # socket.send(output)
 
 # local test of circuit generation and evaluation, no transfers_____________
 
