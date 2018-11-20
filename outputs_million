@@ -1,0 +1,19 @@
+
+======= Millionaires problem for 2-bit =======
+  Alice[2, 1] = 0 0  Bob[4, 3] = 0 0   Outputs[13] = 1 
+  Alice[2, 1] = 0 0  Bob[4, 3] = 0 1   Outputs[13] = 0 
+  Alice[2, 1] = 0 0  Bob[4, 3] = 1 0   Outputs[13] = 0 
+  Alice[2, 1] = 0 0  Bob[4, 3] = 1 1   Outputs[13] = 0 
+  Alice[2, 1] = 0 1  Bob[4, 3] = 0 0   Outputs[13] = 1 
+  Alice[2, 1] = 0 1  Bob[4, 3] = 0 1   Outputs[13] = 1 
+  Alice[2, 1] = 0 1  Bob[4, 3] = 1 0   Outputs[13] = 0 
+  Alice[2, 1] = 0 1  Bob[4, 3] = 1 1   Outputs[13] = 0 
+  Alice[2, 1] = 1 0  Bob[4, 3] = 0 0   Outputs[13] = 1 
+  Alice[2, 1] = 1 0  Bob[4, 3] = 0 1   Outputs[13] = 1 
+  Alice[2, 1] = 1 0  Bob[4, 3] = 1 0   Outputs[13] = 1 
+  Alice[2, 1] = 1 0  Bob[4, 3] = 1 1   Outputs[13] = 0 
+  Alice[2, 1] = 1 1  Bob[4, 3] = 0 0   Outputs[13] = 1 
+  Alice[2, 1] = 1 1  Bob[4, 3] = 0 1   Outputs[13] = 1 
+  Alice[2, 1] = 1 1  Bob[4, 3] = 1 0   Outputs[13] = 1 
+  Alice[2, 1] = 1 1  Bob[4, 3] = 1 1   Outputs[13] = 1 
+

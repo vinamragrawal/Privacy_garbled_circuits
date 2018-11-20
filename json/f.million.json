@@ -1,0 +1,23 @@
+
+{ "+": "Vinamra Agrawal - va1215",
+
+  "circuits" : [
+
+  { "name": "Millionaires problem for 2-bit",
+    "alice":  [2, 1],
+    "bob":    [4, 3],
+    "out":    [13],
+    "gates": [
+      { "id":5, "type":"XOR",  "in":[1, 3] },
+      { "id":6, "type":"XNOR", "in":[2, 4] },
+      { "id":7, "type":"NAND", "in":[3, 5] },
+      { "id":8, "type":"NOR", "in":[4, 6] },
+      { "id":9, "type":"NAND", "in":[6, 7] },
+      { "id":10, "type":"XOR", "in":[8, 9] },
+      { "id":11, "type":"NOR", "in":[9, 6] },
+      { "id":12, "type":"NOR",  "in":[10, 11] },
+      { "id":13, "type":"OR",  "in":[11, 12] }
+    ]
+ }
+
+] }
