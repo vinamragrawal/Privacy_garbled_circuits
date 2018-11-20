@@ -1,5 +1,6 @@
 
 { "+": "yao garbled circuit tests, naranker dulay 2018",
+  "+": "Vinamra Agrawal - va1215",
 
   "circuits" : [
 
@@ -7,7 +8,7 @@
     "alice": [1, 2],
     "bob":   [3, 4],
     "out":   [17, 19],
-    "gates": [ 
+    "gates": [
       { "id":11, "type":"NOT",  "in":[1] },
       { "id":12, "type":"NOT",  "in":[2] },
       { "id":13, "type":"AND",  "in":[11, 3] },
@@ -20,5 +21,4 @@
     ]
   }
 
-] } 
-
+] }

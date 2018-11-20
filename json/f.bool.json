@@ -1,5 +1,6 @@
 
 { "+": "yao garbled circuit tests, naranker dulay 2018",
+  "+": "Vinamra Agrawal - va1215",
 
   "circuits" : [
 
@@ -7,8 +8,8 @@
     "alice": [1],
     "bob":   [2],
     "out":   [3],
-    "gates": [ 
-      { "id":3, "type":"AND", "in": [1, 2] } 
+    "gates": [
+      { "id":3, "type":"AND", "in": [1, 2] }
     ]
   },
 
@@ -16,16 +17,16 @@
     "alice": [1],
     "bob":   [2],
     "out":   [3],
-    "gates": [ 
-      { "id":3, "type":"OR", "in": [1, 2] } 
+    "gates": [
+      { "id":3, "type":"OR", "in": [1, 2] }
     ]
   },
 
   { "name": "NOT gate",
     "alice": [1],
     "out":   [2],
-    "gates": [ 
-      { "id":2, "type":"NOT", "in": [1] } 
+    "gates": [
+      { "id":2, "type":"NOT", "in": [1] }
     ]
   },
 
@@ -33,8 +34,8 @@
     "alice": [1],
     "bob":   [2],
     "out":   [3],
-    "gates": [ 
-      { "id":3, "type":"XOR", "in": [1, 2] } 
+    "gates": [
+      { "id":3, "type":"XOR", "in": [1, 2] }
     ]
   },
 
@@ -42,8 +43,8 @@
     "alice": [1],
     "bob":   [2],
     "out":   [3],
-    "gates": [ 
-      { "id":3, "type":"OR", "in": [1, 2] } 
+    "gates": [
+      { "id":3, "type":"OR", "in": [1, 2] }
     ]
   },
 
@@ -51,8 +52,8 @@
     "alice": [1],
     "bob":   [2],
     "out":   [3],
-    "gates": [ 
-      { "id":3, "type":"NOR", "in": [1, 2] } 
+    "gates": [
+      { "id":3, "type":"NOR", "in": [1, 2] }
     ]
   },
 
@@ -60,8 +61,8 @@
     "alice": [1],
     "bob":   [2],
     "out":   [3],
-    "gates": [ 
-      { "id":3, "type":"NAND", "in": [1, 2] } 
+    "gates": [
+      { "id":3, "type":"NAND", "in": [1, 2] }
     ]
   },
 
@@ -69,8 +70,8 @@
     "alice": [1],
     "bob":   [2],
     "out":   [3],
-    "gates": [ 
-      { "id":3, "type":"XNOR", "in": [1, 2] } 
+    "gates": [
+      { "id":3, "type":"XNOR", "in": [1, 2] }
     ]
   },
 
@@ -78,29 +79,28 @@
     "alice": [1],
     "bob":   [2],
     "out":   [4],
-    "gates": [ 
+    "gates": [
       { "id":3, "type":"NOT", "in": [1] },
-      { "id":4, "type":"OR", "in": [2, 3] } 
+      { "id":4, "type":"OR", "in": [2, 3] }
     ]
   },
 
   { "name": "AA' complement",
     "alice": [1],
     "out":   [3],
-    "gates": [ 
+    "gates": [
       { "id":2, "type":"NOT", "in": [1] },
-      { "id":3, "type":"AND", "in": [1, 2] } 
+      { "id":3, "type":"AND", "in": [1, 2] }
     ]
   },
 
   { "name": "A+A' complement",
     "alice": [1],
     "out":   [3],
-    "gates": [ 
+    "gates": [
       { "id":2, "type":"NOT", "in": [1] },
-      { "id":3, "type":"OR", "in": [1, 2] } 
+      { "id":3, "type":"OR", "in": [1, 2] }
     ]
   }
 
-] } 
-
+] }

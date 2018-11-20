@@ -133,7 +133,7 @@ class ClientSocket(Socket):  # change local host for
 # helpful functions ________________________________________________________
 
 #Create all possible combinations of 0,1 in order
-def create_all_possible_combination(len):
+def create_all_combination(len):
     l = [0,1]
     if (len == 0):
         return []
@@ -152,17 +152,16 @@ def lookup_gate(id, Gates):
     return "null"
 
 #Write output in pretty format
-def write_output(circuit, f, Alice_values, Bob_values, outputs):
-    f.write("  Alice" + str(circuit.Alice) + " = ")
+def print_output(circuit, Alice_values, Bob_values, outputs):
+    string = "  Alice" + str(circuit.Alice) + " = "
     for val in Alice_values:
-        f.write(str(val) + " ")
-    f.write(" Bob" + str(circuit.Bob) + " = ")
+        string += str(val) + " "
+    string += " Bob" + str(circuit.Bob) + " = "
     for val in Bob_values:
-        f.write(str(val) + " ")
-    f.write("  Outputs" + str(circuit.Outputs) + " = ")
+        string += str(val) + " "
+    string += "  Outputs" + str(circuit.Outputs) + " = "
     for val in outputs:
-        f.write(str(val) + " ")
-    f.write("\n")
-    return
+        string += str(val) + " "
+    print(string)
 
 # __________________________________________________________________________

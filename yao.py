@@ -4,7 +4,7 @@
 
 # Vinamra Agrawal - va1215
 
-# << removed >>
+#Define a table
 class Table:
     def __init__(self):
         self.lookup_map = dict()
@@ -22,6 +22,7 @@ class Table:
     def get_entry(self, inputs):
         return self.lookup_map[self.get_key(inputs)]
 
+#Define a Gate
 class Gate:
     def __init__(self):
         self.type = "null"
@@ -46,6 +47,7 @@ class Gate:
             return not inputs[0]
         raise Exception('Unsupported Gate Type')
 
+#Define a Circuit
 class Circuit:
     def __init__(self):
         self.Name = "null"
